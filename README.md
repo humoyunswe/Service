@@ -20,7 +20,7 @@
 
 2. Клонируйте репозиторий с GitHub:
     ```bash
-    $  git clone git clone  https://github.com/Humoyun004/Service.git
+    $  git clone  https://github.com/Humoyun004/Service.git
     ```
 3. Перейдите в директорию с программой:
 cd Service
