@@ -22,57 +22,48 @@ async def handle_photo(message: types.Message):
 @dp.message_handler(text='PDF килиш')
 async def create_pdf(message: types.Message):
     if not images:
-        await message.reply(
-            "Сиз хали хеч кандай расм юбормадингиз. Илтимос, менга расм юборинг, сизга PDF килиб беришим учун.")
+        await message.reply("Сиз хали хеч кандай расм юбормадингиз. Илтимос, менга расм юборинг, сизга PDF килиб беришим учун.")
         return
 
-    if not os.path.exists("temp"):
-        os.makedirs("temp")
+    try:
+        if not os.path.exists("temp"):
+            os.makedirs("temp")
 
-    image_paths = []
-    for idx, image in enumerate(images):
-        image_path = f"temp/image{idx}.png"
-        with open(image_path, "wb") as f:
-            f.write(image.getbuffer())
-        image_paths.append(image_path)
+        pdf_filename = "output.pdf"
+        c = canvas.Canvas(pdf_filename, pagesize=letter)
 
-    pdf_filename = "output.pdf"
-    c = canvas.Canvas(pdf_filename, pagesize=letter)
-    max_width, max_height = 400, 250
-    spacing = 20
+        for idx, image in enumerate(images):
+            image_path = f"temp/image{idx}.png"
+            with open(image_path, "wb") as f:
+                f.write(image.getbuffer())
 
-    def calculate_new_dimensions(img, max_width, max_height):
-        width, height = img.size
-        aspect_ratio = width / height
-        if aspect_ratio > max_width / max_height:
-            new_width = max_width
-            new_height = int(max_width / aspect_ratio)
-        else:
-            new_width = int(max_height * aspect_ratio)
-            new_height = max_height
-        return new_width, new_height
+            try:
+                img = Image.open(image_path)
+                img_width, img_height = img.size
 
-    x = (letter[0] - max_width) / 2
-    y = 500
+                # Calculate the scale factors to fit the image within the page dimensions
+                scale_x = (letter[0] - 40) / img_width  # Subtracting 40 to account for margins
+                scale_y = (letter[1] - 40) / img_height
 
-    for image_path in image_paths:
-        try:
-            img = Image.open(image_path)
-            new_width, new_height = calculate_new_dimensions(img, max_width, max_height)
-            c.drawInlineImage(image_path, x, y, width=new_width, height=new_height)
-            y -= new_height + spacing
-            if y < 100:
+                # Choose the smaller scale factor to ensure the image fits completely within the page
+                scale_factor = min(scale_x, scale_y)
+
+                new_width = img_width * scale_factor
+                new_height = img_height * scale_factor
+
+                x = (letter[0] - new_width) / 2
+                y = (letter[1] - new_height) / 2
+
+                c.drawInlineImage(image_path, x, y, width=new_width, height=new_height)
                 c.showPage()
-                y = 500
-        except Exception as e:
-            print(f"Хатолик расмни олишда: {str(e)}")
-    c.save()
 
-    with open(pdf_filename, 'rb') as pdf_file:
-        await message.reply_document(InputFile(pdf_file))
+            except Exception as e:
+                print(f"Хатолик расмни олишда: {str(e)}")
 
+        c.save()
 
+        with open(pdf_filename, 'rb') as pdf_file:
+            await message.reply_document(InputFile(pdf_file))
 
-
-
-
+    finally:
+        images.clear()
